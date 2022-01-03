@@ -11,6 +11,72 @@ import ComposableArchitecture
 import ComposableUserNotifications
 import Models
 import PickerFeature
+import UserNotifications
+
+
+public enum UserNotification: Equatable {
+  case count(Int)
+}
+
+extension UserNotification {
+  public init?(userInfo: [AnyHashable : Any]) {
+    guard let count = userInfo["count"] as? Int else { return nil }
+    self = .count(count)
+  }
+}
+
+
+import Foundation
+import UIKit
+
+public struct BackgroundNotification {
+  public let appState: UIApplication.State
+  public let fetchCompletionHandler: (UIBackgroundFetchResult) -> Void
+  public let content: Content?
+
+  public init(
+    appState: UIApplication.State,
+    content: Content?,
+    fetchCompletionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+
+    self.appState = appState
+    self.content = content
+    self.fetchCompletionHandler = fetchCompletionHandler
+  }
+
+  public enum Content: Equatable {
+    case countAvailable
+  }
+}
+
+extension BackgroundNotification: Equatable {
+  public static func == (lhs: BackgroundNotification, rhs: BackgroundNotification) -> Bool {
+    return lhs.appState == rhs.appState && lhs.content == rhs.content
+  }
+}
+
+extension BackgroundNotification.Content {
+  public init?(userInfo: [AnyHashable : Any]) {
+    guard userInfo["countAvailable"] != nil else { return nil }
+    self = .countAvailable
+  }
+}
+
+import Foundation
+import ComposableArchitecture
+
+public struct RemoteClient {
+    public init(fetchRemoteCount: @escaping () -> Effect<Int, RemoteClient.Error>) {
+        self.fetchRemoteCount = fetchRemoteCount
+    }
+    
+  var fetchRemoteCount: () -> Effect<Int, Error>
+
+  public struct Error: Swift.Error, Equatable {
+    public init() {}
+  }
+}
+
 
 public struct MediationViewState: Equatable{
     public init(selType: Int = 0, selMin: Int = 0, types: [String] = [
@@ -23,12 +89,13 @@ public struct MediationViewState: Equatable{
         "Yoga Still",
         "Yoga Flow",
         "Free Style",
-    ], timerData: TimerData? = nil, timedMeditation: Meditation? = nil) {
+    ], timerData: TimerData? = nil, timedMeditation: Meditation? = nil, _tdcount: Int = 0) {
         self.selType = selType
         self.selMin = selMin
         self.types = types
         self.timerData = timerData
         self.timedMeditation = timedMeditation
+        self._tdcount = _tdcount
     }
     
     let minutesList : [Double] = (1 ... 60).map(Double.init).map{$0}
@@ -50,6 +117,7 @@ public struct MediationViewState: Equatable{
     var seconds  : Double { self.minutesList[self.selMin] * 60 }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
+    var _tdcount: Int = 0
 }
     
 public struct TimerData : Equatable {
@@ -61,22 +129,30 @@ public struct TimerData : Equatable {
 }
 
 public enum MediationViewAction: Equatable {
+    case addNotificationResponse(Result<Int, UserNotificationClient.Error>)
+    case didFinishLaunching(notification: UserNotification?)
+    case didReceiveBackgroundNotification(BackgroundNotification)
     case pickMeditationTime(Int)
     case pickTypeOfMeditation(Int)
+    case remoteCountResponse(Result<Int, RemoteClient.Error>)
+    case requestAuthorizationResponse(Result<Bool, UserNotificationClient.Error>)
     case startTimerPushed(startDate:Date, duration:Double, type:String)
     case timerFired
     case timerFinished
-    case addNotificationResponse(Result<Int, UserNotificationClient.Error>)
+    case userNotification(UserNotificationClient.Action)
 }
 
 public struct MediationViewEnvironment {
-    internal init(userNotificationClient: UserNotificationClient, mainQueue: AnySchedulerOf<DispatchQueue>, now: @escaping () -> Date, uuid: @escaping () -> UUID) {
+    public init(remoteClient: RemoteClient, userNotificationClient: UserNotificationClient, mainQueue: AnySchedulerOf<DispatchQueue>, now: @escaping () -> Date, uuid: @escaping () -> UUID) {
+        self.remoteClient = remoteClient
         self.userNotificationClient = userNotificationClient
         self.mainQueue = mainQueue
         self.now = now
         self.uuid = uuid
     }
     
+
+    var remoteClient: RemoteClient
     var userNotificationClient: UserNotificationClient
 //   let scheduleNotification : (String, TimeInterval ) -> Void = { NotificationHelper.singleton.scheduleNotification(notificationType: $0, seconds: $1)
 //   }
@@ -90,6 +166,41 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
     struct TimerId: Hashable {}
 
     switch action {
+    case let .didFinishLaunching(notification):
+        if case let .count(value) = notification {
+          state._tdcount = value
+        }
+
+        return .merge(
+          environment.userNotificationClient
+            .delegate()
+            .map(MediationViewAction.userNotification),
+          environment.userNotificationClient.requestAuthorization([.alert, .badge, .sound])
+            .catchToEffect()
+            .map(MediationViewAction.requestAuthorizationResponse)
+          )
+        
+    case let .didReceiveBackgroundNotification(backgroundNotification):
+        let fetchCompletionHandler = backgroundNotification.fetchCompletionHandler
+        guard backgroundNotification.content == .countAvailable else {
+          return .fireAndForget {
+            backgroundNotification.fetchCompletionHandler(.noData)
+          }
+        }
+
+        return environment.remoteClient.fetchRemoteCount()
+          .catchToEffect()
+          .handleEvents(receiveOutput: { result in
+            switch result {
+            case .success:
+              fetchCompletionHandler(.newData)
+            case .failure:
+              fetchCompletionHandler(.failed)
+            }
+          })
+          .eraseToEffect()
+          .map(MediationViewAction.remoteCountResponse)
+        
     case .pickTypeOfMeditation(let index):
       state.selType = index
       return .none
@@ -130,6 +241,17 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
             .catchToEffect()
             .map(MediationViewAction.addNotificationResponse)
      )
+        
+    case let .remoteCountResponse(.success(count)):
+        state._tdcount = count
+        return .none
+        
+    case .remoteCountResponse(.failure):
+      return .none
+        
+    case .requestAuthorizationResponse:
+      return .none
+        
     case .timerFired:
         
         let currentDate = Date()
@@ -153,6 +275,19 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
         return .none
     case .addNotificationResponse(.failure(let error)):
         print(error)
+        return .none
+    case let .userNotification(.didReceiveResponse(response, completion)):
+        let notification = UserNotification(userInfo: response.notification.request.content.userInfo())
+        if case let .count(value) = notification {
+          state._tdcount = value
+        }
+
+        return .fireAndForget(completion)
+    case .userNotification(.willPresentNotification(_, completion: let completion)):
+        return .fireAndForget {
+             completion([.list, .banner, .sound])
+           }
+    case .userNotification(.openSettingsForNotification(_)):
         return .none
     }
     

@@ -19,6 +19,8 @@ let package = Package(
         .target(
             name: "MeditationViewFeature",
             dependencies: [
+                "PickerFeature",
+                "Models",
                 .product(name: "ComposableUserNotifications", package: "composable-user-notifications")
             ]
         ),
