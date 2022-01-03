@@ -114,7 +114,10 @@ public struct MediationViewState: Equatable{
       ]
     var timerData : TimerData?
     var timedMeditation: Meditation?
-    var seconds  : Double { self.minutesList[self.selMin] * 60 }
+    var seconds  : Double { self.minutesList[self.selMin]
+       // * 60
+        
+    }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
     var _tdcount: Int = 0
@@ -220,16 +223,16 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
       let duration = state.timedMeditation!.duration
         
         let content = UNMutableNotificationContent()
-           content.title = "Example title"
-           content.body = "Example body"
+        content.title = "Example title"
+        content.body = "Example body"
+        content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "bell.caf"))
+        content.badge = 1
 
            let request = UNNotificationRequest(
              identifier: "example_notification",
              content: content,
              trigger: UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
            )
-
-        
          
       return  Effect.concatenate(
         Effect.timer(id: TimerId(), every: 1, on: environment.mainQueue)
