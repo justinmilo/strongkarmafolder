@@ -13,10 +13,15 @@ let package = Package(
         .library(name: "PickerFeature", targets: ["PickerFeature"])
     ],
     dependencies: [
+        .package(url: "https://github.com/miiha/composable-user-notifications", from: "0.2.0"),
     ],
     targets: [
         .target(
-            name: "MeditationViewFeature"),
+            name: "MeditationViewFeature",
+            dependencies: [
+                .product(name: "ComposableUserNotifications", package: "composable-user-notifications")
+            ]
+        ),
         .target(
             name: "Models"),
         .target(

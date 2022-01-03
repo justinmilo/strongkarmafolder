@@ -8,10 +8,29 @@
 
 import SwiftUI
 import ComposableArchitecture
+import ComposableUserNotifications
 import Models
 import PickerFeature
 
-struct MediationViewState: Equatable{
+public struct MediationViewState: Equatable{
+    public init(selType: Int = 0, selMin: Int = 0, types: [String] = [
+        "Concentration",
+        "Mindfullness of Breath",
+        "See Hear Feel",
+        "Self Inquiry",
+        "Do Nothing",
+        "Positive Feel",
+        "Yoga Still",
+        "Yoga Flow",
+        "Free Style",
+    ], timerData: TimerData? = nil, timedMeditation: Meditation? = nil) {
+        self.selType = selType
+        self.selMin = selMin
+        self.types = types
+        self.timerData = timerData
+        self.timedMeditation = timedMeditation
+    }
+    
     let minutesList : [Double] = (1 ... 60).map(Double.init).map{$0}
     var selType : Int = 0
     var selMin  : Int = 0
@@ -32,8 +51,8 @@ struct MediationViewState: Equatable{
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
 }
-
-struct TimerData : Equatable {
+    
+public struct TimerData : Equatable {
  var endDate : Date
  var timeLeft : Double? { didSet {
    self.timeLeftLabel = formatTime(time: self.timeLeft ?? 0.0) ?? "Empty"
@@ -41,23 +60,32 @@ struct TimerData : Equatable {
  var timeLeftLabel = ""
 }
 
-enum MediationViewAction: Equatable {
+public enum MediationViewAction: Equatable {
     case pickMeditationTime(Int)
     case pickTypeOfMeditation(Int)
     case startTimerPushed(startDate:Date, duration:Double, type:String)
     case timerFired
     case timerFinished
+    case addNotificationResponse(Result<Int, UserNotificationClient.Error>)
 }
 
-struct MediationViewEnvironment {
-   let scheduleNotification : (String, TimeInterval ) -> Void = { NotificationHelper.singleton.scheduleNotification(notificationType: $0, seconds: $1)
-   }
+public struct MediationViewEnvironment {
+    internal init(userNotificationClient: UserNotificationClient, mainQueue: AnySchedulerOf<DispatchQueue>, now: @escaping () -> Date, uuid: @escaping () -> UUID) {
+        self.userNotificationClient = userNotificationClient
+        self.mainQueue = mainQueue
+        self.now = now
+        self.uuid = uuid
+    }
+    
+    var userNotificationClient: UserNotificationClient
+//   let scheduleNotification : (String, TimeInterval ) -> Void = { NotificationHelper.singleton.scheduleNotification(notificationType: $0, seconds: $1)
+//   }
    var mainQueue: AnySchedulerOf<DispatchQueue>
    var now : ()->Date
    var uuid : ()->UUID
 }
 
-let mediationReducer = Reducer<MediationViewState, MediationViewAction, MediationViewEnvironment>{
+public let mediationReducer = Reducer<MediationViewState, MediationViewAction, MediationViewEnvironment>{
     state, action, environment in
     struct TimerId: Hashable {}
 
@@ -79,11 +107,28 @@ let mediationReducer = Reducer<MediationViewState, MediationViewAction, Mediatio
                         title: type)
 
       let duration = state.timedMeditation!.duration
+        
+        let content = UNMutableNotificationContent()
+           content.title = "Example title"
+           content.body = "Example body"
+
+           let request = UNNotificationRequest(
+             identifier: "example_notification",
+             content: content,
+             trigger: UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
+           )
+
+        
          
-      return  Effect.merge(
+      return  Effect.concatenate(
         Effect.timer(id: TimerId(), every: 1, on: environment.mainQueue)
           .map { _ in MediationViewAction.timerFired },
-        Effect<MediationViewAction, Never>.fireAndForget{ environment.scheduleNotification("\(type) Complete", duration)}
+        environment.userNotificationClient.removePendingNotificationRequestsWithIdentifiers(["example_notification"])
+            .fireAndForget(),
+        environment.userNotificationClient.add(request)
+            .map(Int.init)
+            .catchToEffect()
+            .map(MediationViewAction.addNotificationResponse)
      )
     case .timerFired:
         
@@ -103,14 +148,24 @@ let mediationReducer = Reducer<MediationViewState, MediationViewAction, Mediatio
     case .timerFinished:
         state.timerData = nil
         return Effect.cancel(id: TimerId())
+    case .addNotificationResponse(.success(let meint)):
+        print("me int \(meint)")
+        return .none
+    case .addNotificationResponse(.failure(let error)):
+        print(error)
+        return .none
     }
     
 }
 
-struct MeditationView: View {
-  var store: Store<MediationViewState, MediationViewAction>
+public struct MeditationView: View {
+    public init(store: Store<MediationViewState, MediationViewAction>) {
+        self.store = store
+    }
+    
+    public var store: Store<MediationViewState, MediationViewAction>
   
-  var body: some View {
+    public var body: some View {
    WithViewStore( self.store ) { viewStore in
       VStack{
           Spacer()
