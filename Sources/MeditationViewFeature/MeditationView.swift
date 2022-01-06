@@ -12,27 +12,8 @@ import ComposableUserNotifications
 import Models
 import PickerFeature
 import UserNotifications
-
-
 import Foundation
 import UIKit
-
-
-import Foundation
-import ComposableArchitecture
-
-public struct RemoteClient {
-    public init(fetchRemoteCount: @escaping () -> Effect<Int, RemoteClient.Error>) {
-        self.fetchRemoteCount = fetchRemoteCount
-    }
-    
-  var fetchRemoteCount: () -> Effect<Int, Error>
-
-  public struct Error: Swift.Error, Equatable {
-    public init() {}
-  }
-}
-
 
 public struct MediationViewState: Equatable{
     public init(selType: Int = 0, selMin: Int = 0, types: [String] = [
@@ -68,25 +49,16 @@ public struct MediationViewState: Equatable{
         "Yoga Flow",
         "Free Style",
       ]
-    var timerData : TimerData?
-    var timedMeditation: Meditation?
+    public var timerData : TimerData?
+    public var timedMeditation: Meditation?
     var seconds  : Double { self.minutesList[self.selMin]
-       // * 60
-        
+        * 60
     }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
     var _tdcount: Int = 0
 }
     
-public struct TimerData : Equatable {
- var endDate : Date
- var timeLeft : Double? { didSet {
-   self.timeLeftLabel = formatTime(time: self.timeLeft ?? 0.0) ?? "Empty"
- }}
- var timeLeftLabel = ""
-}
-
 public enum MediationViewAction: Equatable {
     case addNotificationResponse(Result<Int, UserNotificationClient.Error>)
     case didFinishLaunching(notification: UserNotification?)
