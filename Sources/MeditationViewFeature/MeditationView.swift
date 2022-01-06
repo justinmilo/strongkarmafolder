@@ -14,53 +14,9 @@ import PickerFeature
 import UserNotifications
 
 
-public enum UserNotification: Equatable {
-  case count(Int)
-}
-
-extension UserNotification {
-  public init?(userInfo: [AnyHashable : Any]) {
-    guard let count = userInfo["count"] as? Int else { return nil }
-    self = .count(count)
-  }
-}
-
-
 import Foundation
 import UIKit
 
-public struct BackgroundNotification {
-  public let appState: UIApplication.State
-  public let fetchCompletionHandler: (UIBackgroundFetchResult) -> Void
-  public let content: Content?
-
-  public init(
-    appState: UIApplication.State,
-    content: Content?,
-    fetchCompletionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-
-    self.appState = appState
-    self.content = content
-    self.fetchCompletionHandler = fetchCompletionHandler
-  }
-
-  public enum Content: Equatable {
-    case countAvailable
-  }
-}
-
-extension BackgroundNotification: Equatable {
-  public static func == (lhs: BackgroundNotification, rhs: BackgroundNotification) -> Bool {
-    return lhs.appState == rhs.appState && lhs.content == rhs.content
-  }
-}
-
-extension BackgroundNotification.Content {
-  public init?(userInfo: [AnyHashable : Any]) {
-    guard userInfo["countAvailable"] != nil else { return nil }
-    self = .countAvailable
-  }
-}
 
 import Foundation
 import ComposableArchitecture
@@ -221,18 +177,26 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
                         title: type)
 
       let duration = state.timedMeditation!.duration
+        let userActions = "User Actions"
+
         
         let content = UNMutableNotificationContent()
         content.title = "Example title"
         content.body = "Example body"
         content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "bell.caf"))
         content.badge = 1
+        content.categoryIdentifier = userActions
 
-           let request = UNNotificationRequest(
-             identifier: "example_notification",
-             content: content,
-             trigger: UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
-           )
+
+        let request = UNNotificationRequest(
+            identifier: "example_notification",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
+        )
+        
+        let snoozeAction = UNNotificationAction(identifier: "Snooze", title: "Snooze", options: [])
+        let deleteAction = UNNotificationAction(identifier: "Delete", title: "Delete", options: [.destructive])
+        let category = UNNotificationCategory(identifier: userActions, actions: [snoozeAction, deleteAction], intentIdentifiers: [], options: [])
          
       return  Effect.concatenate(
         Effect.timer(id: TimerId(), every: 1, on: environment.mainQueue)
@@ -242,7 +206,9 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
         environment.userNotificationClient.add(request)
             .map(Int.init)
             .catchToEffect()
-            .map(MediationViewAction.addNotificationResponse)
+            .map(MediationViewAction.addNotificationResponse),
+        environment.userNotificationClient.setNotificationCategories([category])
+            .fireAndForget()
      )
         
     case let .remoteCountResponse(.success(count)):

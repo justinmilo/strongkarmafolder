@@ -9,7 +9,6 @@ let package = Package(
     products: [
         .library(name: "MeditationViewFeature", targets: ["MeditationViewFeature"]),
         .library(name: "Models", targets: ["Models"]),
-        .library(name: "NotificationHelper", targets: ["NotificationHelper"]),
         .library(name: "PickerFeature", targets: ["PickerFeature"])
     ],
     dependencies: [
@@ -26,8 +25,6 @@ let package = Package(
         ),
         .target(
             name: "Models"),
-        .target(
-            name: "NotificationHelper"),
         .target(
             name: "PickerFeature"),
     ]
