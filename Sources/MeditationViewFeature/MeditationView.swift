@@ -52,7 +52,7 @@ public struct MediationViewState: Equatable{
     public var timerData : TimerData?
     public var timedMeditation: Meditation?
     var seconds  : Double { self.minutesList[self.selMin]
-        * 60
+       // * 60
     }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
@@ -84,7 +84,7 @@ public struct MediationViewEnvironment {
     
 
     var remoteClient: RemoteClient
-    var userNotificationClient: UserNotificationClient
+    public var userNotificationClient: UserNotificationClient
 //   let scheduleNotification : (String, TimeInterval ) -> Void = { NotificationHelper.singleton.scheduleNotification(notificationType: $0, seconds: $1)
 //   }
    var mainQueue: AnySchedulerOf<DispatchQueue>
