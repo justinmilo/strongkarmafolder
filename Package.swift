@@ -9,10 +9,14 @@ let package = Package(
     products: [
         .library(name: "MeditationViewFeature", targets: ["MeditationViewFeature"]),
         .library(name: "Models", targets: ["Models"]),
-        .library(name: "PickerFeature", targets: ["PickerFeature"])
+        .library(name: "PickerFeature", targets: ["PickerFeature"]),
+        .library(name: "EditEntryViewFeature", targets: ["EditEntryViewFeature"]),
+        .library(name: "TimerBottomFeature", targets: ["TimerBottomFeature"])
+
     ],
     dependencies: [
         .package(url: "https://github.com/miiha/composable-user-notifications", from: "0.2.0"),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.14.0"),
     ],
     targets: [
         .target(
@@ -20,12 +24,30 @@ let package = Package(
             dependencies: [
                 "PickerFeature",
                 "Models",
-                .product(name: "ComposableUserNotifications", package: "composable-user-notifications")
+                .product(name: "ComposableUserNotifications", package: "composable-user-notifications"),
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]
         ),
         .target(
-            name: "Models"),
+            name: "Models"
+        ),
         .target(
-            name: "PickerFeature"),
+            name: "PickerFeature"
+        ),
+        .target(
+            name: "EditEntryViewFeature",
+            dependencies: [
+                "Models",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+            ]
+        ),
+        .target(
+            name: "TimerBottomFeature",
+            dependencies: [
+                "MeditationViewFeature",
+                "Models",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+            ]
+        )
     ]
 )
