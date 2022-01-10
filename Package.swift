@@ -35,6 +35,7 @@ let package = Package(
             dependencies: [
                 "PickerFeature",
                 "Models",
+                "PrepViewFeature",
                 .product(name: "ComposableUserNotifications", package: "composable-user-notifications"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]

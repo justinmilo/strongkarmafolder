@@ -15,6 +15,7 @@ import UIKit
 import ComposableUserNotifications
 import CombineSchedulers
 import ComposableArchitecture
+import PrepViewFeature
 
 public struct MediationViewState: Equatable{
     public init(selType: Int = 0, selMin: Int = 0, types: [String] = [
@@ -241,6 +242,7 @@ public struct MeditationView: View {
     }
     
     public var store: Store<MediationViewState, MediationViewAction>
+    @State var myBool = true
   
     public var body: some View {
    WithViewStore( self.store ) { viewStore in
@@ -252,7 +254,10 @@ public struct MeditationView: View {
           Text(viewStore.timerData?.timeLeftLabel ?? "\(viewStore.minutes)")
             .foregroundColor(Color(#colorLiteral(red: 0.4843137264, green: 0.6065605269, blue: 0.9686274529, alpha: 1)))
             .font(.largeTitle)
-         
+          Spacer()
+          Group{
+              PrepView(goals: self.$myBool, motivation: self.$myBool, expectation: self.$myBool, resolve: self.$myBool, posture: self.$myBool)
+          }
           PickerFeature(
             types: viewStore.types,
             typeSelection:  viewStore.binding(

@@ -8,90 +8,85 @@
 
 import SwiftUI
 
-struct PrepView: View {
+public struct PrepView: View {
     
-    @State private var showingGoals = false
-    @State private var showingMot = false
-    @State private var showingExp = false
-    @State private var showingRes = false
-    @State private var showingPos = false
+    public init(
+        goals: Binding<Bool>,
+        motivation: Binding<Bool>,
+        expectation: Binding<Bool>,
+        resolve: Binding<Bool>,
+        posture: Binding<Bool>
+    ){
+        self._showingGoals = goals
+        self._showingMot = motivation
+        self._showingExp = expectation
+        self._showingRes = resolve
+        self._showingPos = posture
+    }
     
-    @State private var goalInput = ""
-    @State private var motInput = ""
-    @State private var expInput = ""
-    @State private var resInput = ""
-    @State private var posInput = ""
+    @Binding public var showingGoals: Bool
+    @Binding public var showingMot: Bool
+    @Binding public var showingExp: Bool
+    @Binding public var showingRes: Bool
+    @Binding public var showingPos: Bool
     
-    var body: some View {
+    public var body: some View {
         HStack {
             Spacer()
             Group {
-                
-                Button(action: {self.showingGoals = true} ) {
-                    VStack {
-                        Text("Goals")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(goalInput)
-                    }
-                }
-                Spacer()
-                
-                VStack {
-                    Button(action: {self.showingExp = true} ) {
-                        VStack {
-                            Text("Motivation")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(motInput)
-                        }
-                    }
-                    
-                    
-                }
-                Spacer()
-                
-                VStack {
-                    Text("Expectation")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button(action: {} ) {
-                        Text(expInput)
-                    }
-                }
-                Spacer()
-                
-                VStack {
-                    Text("Resolve")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button(action: {} ) {
-                        Text(resInput)
-                    }
-                }
-                Spacer()
-                
-                VStack {
-                    Text("Posture")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button(action: {} ) {
-                        Text(posInput)
-                    }
-                }
-                
+                PreperationView(showing: self.$showingGoals, text: "Goals")
+                PreperationView(showing: self.$showingMot, text: "Motivation")
+                PreperationView(showing: self.$showingExp, text: "Expectation")
+                PreperationView(showing: self.$showingRes, text: "Resolve")
+                PreperationView(showing: self.$showingPos, text: "Posture")
             }
-            
-            Spacer()
         }
-        .textFieldAlert(isShowing: $showingGoals, text: $goalInput, title: Text("What are your goals?"))
-        .textFieldAlert(isShowing: $showingExp, text: $motInput, title: Text("What is your expectation"))
     }
 }
 
+struct PreperationView: View {
+    
+    @Binding var showing: Bool
+    var text: String
+    
+    var body: some View {
+        if showing {
+            ZStack{
+                Text(text)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .layoutPriority(1)
+            }
+                .onTapGesture {
+                    
+                }
+                .onLongPressGesture(minimumDuration: 0.1) {
+                    showing = false
+                }
+            Spacer()
+        } else {
+            ZStack(alignment: .bottom){
+                Text(text)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .hidden()
+                    .layoutPriority(1)
+                Color(.sRGB, white: 0.95, opacity: 1)
+                    .clipShape(Circle())
+            }
+                .onLongPressGesture(minimumDuration: 0.1) {
+                    showing = true
+                }
+            Spacer()
+        }
+    }
+}
+
+
 struct PrepView_Previews: PreviewProvider {
     static var previews: some View {
-        PrepView()
+        @State var showingGoals: Bool = true
+        return PrepView(goals: $showingGoals, motivation: $showingGoals, expectation: $showingGoals, resolve: $showingGoals, posture: $showingGoals)
     }
 }
 
