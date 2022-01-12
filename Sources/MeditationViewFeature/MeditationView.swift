@@ -17,6 +17,7 @@ import CombineSchedulers
 import ComposableArchitecture
 import PrepViewFeature
 
+
 public struct MediationViewState: Equatable{
     public init(selType: Int = 0, selMin: Int = 0, types: [String] = [
         "Concentration",
