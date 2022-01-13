@@ -42,6 +42,8 @@ let package = Package(
                 "MeditationViewFeature",
                 "EditEntryViewFeature",
                 "TimerBottomFeature",
+                "ParsingHelpers",
+                .product(name: "Parsing", package: "swift-parsing"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]
         ),

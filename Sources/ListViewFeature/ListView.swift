@@ -14,6 +14,7 @@ import MeditationViewFeature
 import EditEntryViewFeature
 import TimerBottomFeature
 
+
 public struct ListViewState: Equatable {
     public init(meditations: IdentifiedArrayOf<Meditation>, addEntryPopover: Bool, meditationView: MediationViewState? = nil, collapsed: Bool, newMeditation: Meditation? = nil, addMeditationVisible: Bool) {
         self.meditations = meditations
@@ -46,6 +47,8 @@ public struct ListViewState: Equatable {
             }
         }
     }
+    
+        .navigate(to: inventoryRoute)
 }
 
 public enum ListAction: Equatable{
