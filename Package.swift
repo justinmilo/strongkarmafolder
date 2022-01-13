@@ -7,19 +7,34 @@ let package = Package(
     name: "Strong Karma Folder",
     platforms: [.iOS(.v15)],
     products: [
+        .library(name: "AppFeature", targets: ["AppFeature"]),
         .library(name: "MeditationViewFeature", targets: ["MeditationViewFeature"]),
         .library(name: "Models", targets: ["Models"]),
         .library(name: "PrepViewFeature", targets: ["PrepViewFeature"]),
         .library(name: "PickerFeature", targets: ["PickerFeature"]),
         .library(name: "EditEntryViewFeature", targets: ["EditEntryViewFeature"]),
-        .library(name: "TimerBottomFeature", targets: ["TimerBottomFeature"]),
-        .library(name: "ListViewFeature", targets: ["ListViewFeature"])
+        .library(name: "ListViewFeature", targets: ["ListViewFeature"]),
+        .library(name: "ParsingHelpers", targets: ["ParsingHelpers"]),
+        .library(name: "TimerBottomFeature", targets: ["TimerBottomFeature"])
     ],
     dependencies: [
         .package(url: "https://github.com/miiha/composable-user-notifications", from: "0.2.0"),
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.14.0")
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.14.0"),
+        .package(url: "https://github.com/pointfreeco/swift-parsing", from: "0.3.1")
     ],
     targets: [
+        .target(
+          name: "AppFeature",
+          dependencies: [
+            "ListViewFeature",
+            "MeditationViewFeature",
+            "Models",
+            "ParsingHelpers",
+            .product(name: "Parsing", package: "swift-parsing"),
+            .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            .product(name: "ComposableUserNotifications", package: "composable-user-notifications")
+          ]
+        ),
         .target(
             name: "ListViewFeature",
             dependencies: [
@@ -42,6 +57,12 @@ let package = Package(
         ),
         .target(
             name: "Models"
+        ),
+        .target(
+          name: "ParsingHelpers",
+          dependencies: [
+            .product(name: "Parsing", package: "swift-parsing")
+          ]
         ),
         .target(
             name: "PrepViewFeature"
