@@ -13,27 +13,28 @@ import Models
 import MeditationViewFeature
 import EditEntryViewFeature
 import TimerBottomFeature
+import TimedSessionViewFeature
+import CasePaths
 
 
 public struct ListViewState: Equatable {
     public init(meditations: IdentifiedArrayOf<Meditation>, addEntryPopover: Bool, meditationView: MediationViewState? = nil, collapsed: Bool, newMeditation: Meditation? = nil, addMeditationVisible: Bool) {
-        self.meditations = meditations
+        self.meditations = IdentifiedArray( meditations.map{ EditState(meditation: $0, route:nil) } )
         self.addEntryPopover = addEntryPopover
         self.meditationView = meditationView
         self.collapsed = collapsed
-        self.newMeditation = newMeditation
         self.addMeditationVisible = addMeditationVisible
     }
     
-    var meditations : IdentifiedArrayOf<Meditation>
-    var meditationsReversed: IdentifiedArrayOf<Meditation> {
-      IdentifiedArrayOf<Meditation>( self.meditations.reversed() )
+    var meditations : IdentifiedArrayOf<EditState>
+    var meditationsReversed: IdentifiedArrayOf<EditState> {
+      IdentifiedArrayOf<EditState>( self.meditations.reversed() )
     }
     var addEntryPopover : Bool
     var meditationView: MediationViewState?
     var collapsed: Bool
-  var newMeditation : Meditation?
   var addMeditationVisible: Bool
+    var route: Route?
     var timerBottomState: TimerBottomState?{
         get{
             guard let meditationView = self.meditationView else { return nil }
@@ -48,7 +49,12 @@ public struct ListViewState: Equatable {
         }
     }
     
-        .navigate(to: inventoryRoute)
+       // .navigate(to: inventoryRoute)
+    
+    
+    public enum Route: Equatable {
+      case timedSession(TimedSessionViewState)
+    }
 }
 
 public enum ListAction: Equatable{
@@ -198,6 +204,19 @@ public struct ListView : View {
                 .foregroundColor(.secondary)
             })
           }
+          .sheet(item: viewStore.route.case(/ListViewState.Route.timedSession)) { itemToAdd in
+              NavigationView {
+                ItemView(viewModel: itemToAdd)
+                  .navigationTitle("Add")
+                  .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                      Button("Cancel") { self.viewModel.cancelButtonTapped() }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                      Button("Save") { self.viewModel.add(item: itemToAdd.item) }
+                    }
+                  }
+              }
           
           if (viewStore.collapsed){
               IfLetStore(

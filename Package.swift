@@ -8,13 +8,13 @@ let package = Package(
     platforms: [.iOS(.v15)],
     products: [
         .library(name: "AppFeature", targets: ["AppFeature"]),
-        .library(name: "MeditationViewFeature", targets: ["MeditationViewFeature"]),
         .library(name: "Models", targets: ["Models"]),
         .library(name: "PrepViewFeature", targets: ["PrepViewFeature"]),
         .library(name: "PickerFeature", targets: ["PickerFeature"]),
         .library(name: "EditEntryViewFeature", targets: ["EditEntryViewFeature"]),
         .library(name: "ListViewFeature", targets: ["ListViewFeature"]),
         .library(name: "ParsingHelpers", targets: ["ParsingHelpers"]),
+        .library(name: "TimedSessionViewFeature", targets: ["TimedSessionViewFeature"]),
         .library(name: "TimerBottomFeature", targets: ["TimerBottomFeature"])
     ],
     dependencies: [
@@ -27,7 +27,7 @@ let package = Package(
           name: "AppFeature",
           dependencies: [
             "ListViewFeature",
-            "MeditationViewFeature",
+            "TimedSessionViewFeature",
             "Models",
             "ParsingHelpers",
             .product(name: "Parsing", package: "swift-parsing"),
@@ -39,7 +39,7 @@ let package = Package(
             name: "ListViewFeature",
             dependencies: [
                 "Models",
-                "MeditationViewFeature",
+                "TimedSessionViewFeature",
                 "EditEntryViewFeature",
                 "TimerBottomFeature",
                 "ParsingHelpers",
@@ -48,7 +48,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "MeditationViewFeature",
+            name: "TimedSessionViewFeature",
             dependencies: [
                 "PickerFeature",
                 "Models",
@@ -82,7 +82,7 @@ let package = Package(
         .target(
             name: "TimerBottomFeature",
             dependencies: [
-                "MeditationViewFeature",
+                "TimedSessionViewFeature",
                 "Models",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]

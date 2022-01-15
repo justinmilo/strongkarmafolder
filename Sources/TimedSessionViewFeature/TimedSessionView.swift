@@ -18,7 +18,7 @@ import ComposableArchitecture
 import PrepViewFeature
 
 
-public struct MediationViewState: Equatable{
+public struct TimedSessionViewState: Equatable{
     public init(selType: Int = 0, selMin: Int = 0, types: [String] = [
         "Concentration",
         "Mindfullness of Breath",
@@ -62,7 +62,7 @@ public struct MediationViewState: Equatable{
     var _tdcount: Int = 0
 }
     
-public enum MediationViewAction: Equatable {
+public enum TimedSessionViewAction: Equatable {
     case addNotificationResponse(Result<Int, UserNotificationClient.Error>)
     case didFinishLaunching(notification: UserNotification?)
     case didReceiveBackgroundNotification(BackgroundNotification)
@@ -76,7 +76,7 @@ public enum MediationViewAction: Equatable {
     case userNotification(UserNotificationClient.Action)
 }
 
-public struct MediationViewEnvironment {
+public struct TimedSessionViewEnvironment {
     public init(remoteClient: RemoteClient, userNotificationClient: UserNotificationClient, mainQueue: AnySchedulerOf<DispatchQueue>, now: @escaping () -> Date, uuid: @escaping () -> UUID) {
         self.remoteClient = remoteClient
         self.userNotificationClient = userNotificationClient
@@ -95,7 +95,7 @@ public struct MediationViewEnvironment {
    var uuid : ()->UUID
 }
 
-public let mediationReducer = Reducer<MediationViewState, MediationViewAction, MediationViewEnvironment>{
+public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAction, TimedSessionViewEnvironment>{
     state, action, environment in
     struct TimerId: Hashable {}
 
@@ -108,10 +108,10 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
         return .merge(
           environment.userNotificationClient
             .delegate()
-            .map(MediationViewAction.userNotification),
+            .map(TimedSessionViewAction.userNotification),
           environment.userNotificationClient.requestAuthorization([.alert, .badge, .sound])
             .catchToEffect()
-            .map(MediationViewAction.requestAuthorizationResponse)
+            .map(TimedSessionViewAction.requestAuthorizationResponse)
           )
         
     case let .didReceiveBackgroundNotification(backgroundNotification):
@@ -133,7 +133,7 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
             }
           })
           .eraseToEffect()
-          .map(MediationViewAction.remoteCountResponse)
+          .map(TimedSessionViewAction.remoteCountResponse)
         
     case .pickTypeOfMeditation(let index):
       state.selType = index
@@ -175,13 +175,13 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
          
       return  Effect.concatenate(
         Effect.timer(id: TimerId(), every: 1, on: environment.mainQueue)
-          .map { _ in MediationViewAction.timerFired },
+          .map { _ in TimedSessionViewAction.timerFired },
         environment.userNotificationClient.removePendingNotificationRequestsWithIdentifiers(["example_notification"])
             .fireAndForget(),
         environment.userNotificationClient.add(request)
             .map(Int.init)
             .catchToEffect()
-            .map(MediationViewAction.addNotificationResponse),
+            .map(TimedSessionViewAction.addNotificationResponse),
         environment.userNotificationClient.setNotificationCategories([category])
             .fireAndForget()
      )
@@ -237,12 +237,12 @@ public let mediationReducer = Reducer<MediationViewState, MediationViewAction, M
     
 }
 
-public struct MeditationView: View {
-    public init(store: Store<MediationViewState, MediationViewAction>) {
+public struct TimedSessionView: View {
+    public init(store: Store<TimedSessionViewState, TimedSessionViewAction>) {
         self.store = store
     }
     
-    public var store: Store<MediationViewState, MediationViewAction>
+    public var store: Store<TimedSessionViewState, TimedSessionViewAction>
     @State var myBool = true
   
     public var body: some View {
