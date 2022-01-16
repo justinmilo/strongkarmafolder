@@ -14,10 +14,13 @@ let package = Package(
         .library(name: "EditEntryViewFeature", targets: ["EditEntryViewFeature"]),
         .library(name: "ListViewFeature", targets: ["ListViewFeature"]),
         .library(name: "ParsingHelpers", targets: ["ParsingHelpers"]),
+        .library(name: "TCAHelpers", targets: ["TCAHelpers"]),
         .library(name: "TimedSessionViewFeature", targets: ["TimedSessionViewFeature"]),
-        .library(name: "TimerBottomFeature", targets: ["TimerBottomFeature"])
+        .library(name: "TimerBottomFeature", targets: ["TimerBottomFeature"]),
+        .library(name: "SwiftUIHelpers", targets: ["SwiftUIHelpers"])
     ],
     dependencies: [
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "0.7.0"),
         .package(url: "https://github.com/miiha/composable-user-notifications", from: "0.2.0"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.14.0"),
         .package(url: "https://github.com/pointfreeco/swift-parsing", from: "0.3.1")
@@ -39,8 +42,10 @@ let package = Package(
             name: "ListViewFeature",
             dependencies: [
                 "Models",
+                "TCAHelpers",
                 "TimedSessionViewFeature",
                 "EditEntryViewFeature",
+                "SwiftUIHelpers",
                 "TimerBottomFeature",
                 "ParsingHelpers",
                 .product(name: "Parsing", package: "swift-parsing"),
@@ -78,6 +83,19 @@ let package = Package(
                 "Models",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]
+        ),
+        .target(
+          name: "SwiftUIHelpers",
+          dependencies: [
+            .product(name: "CasePaths", package: "swift-case-paths")
+          ]
+        ),
+        .target(
+          name: "TCAHelpers",
+          dependencies: [
+            .product(name: "CasePaths", package: "swift-case-paths"),
+            .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+          ]
         ),
         .target(
             name: "TimerBottomFeature",

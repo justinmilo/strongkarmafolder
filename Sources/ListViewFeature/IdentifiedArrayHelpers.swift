@@ -8,12 +8,12 @@
 import ComposableArchitecture
 import Models
 
-extension IdentifiedArray where Element == Meditation, ID == UUID {
-  mutating func removeOrAdd(meditation : Meditation) {
-    guard let index = (self.firstIndex{ $0.id == meditation.id }) else {
-      self.insert(meditation, at: 0)
+extension IdentifiedArray where Element: Identifiable, ID == UUID {
+  mutating func removeOrAdd(item : Element) {
+      guard let index = (self.firstIndex{ $0.id as! UUID == item.id as! UUID }) else {
+      self.insert(item, at: 0)
       return
     }
-    self[index] = meditation
+    self[index] = item
   }
 }

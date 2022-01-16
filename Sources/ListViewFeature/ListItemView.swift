@@ -12,26 +12,26 @@ import Models
 import EditEntryViewFeature
 
 struct ListItemView : View {
-   var store: Store<Meditation,EditAction>
+   var store: Store<EditState,EditAction>
   
   var body : some View {
    WithViewStore(self.store ) { viewStore in
     VStack(alignment: HorizontalAlignment.leading, spacing: nil) {
       HStack{
-          Text(viewStore.title)
+          Text(viewStore.meditation.title)
           Spacer()
-          Text(viewStore.durationFormatted ?? "Empty")
+          Text(viewStore.meditation.durationFormatted ?? "Empty")
               .font(.footnote)
               .foregroundColor(.gray)
         
       }
-      date(from:viewStore.date).map{
+      date(from:viewStore.meditation.date).map{
         Text(formattedDate(from: $0))
           .foregroundColor(.gray)
       }
-      if viewStore.entry != "" {
+      if viewStore.meditation.entry != "" {
         Spacer()
-        Text(viewStore.entry)
+        Text(viewStore.meditation.entry)
           .foregroundColor(.gray)
       }
       Spacer()

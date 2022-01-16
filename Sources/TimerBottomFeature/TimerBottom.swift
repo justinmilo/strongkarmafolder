@@ -9,7 +9,7 @@
 import SwiftUI
 import ComposableArchitecture
 import Models
-import MeditationViewFeature
+import TimedSessionViewFeature
 
 public struct TimerBottomState {
     public init(timerData: TimerData? = nil, timedMeditation: Meditation? = nil, enabled: Bool) {

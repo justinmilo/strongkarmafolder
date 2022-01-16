@@ -14,7 +14,7 @@ import ListViewFeature
 import ComposableArchitecture
 import Foundation
 import Models
-import MeditationViewFeature
+import TimedSessionViewFeature
 import ComposableUserNotifications
 import Parsing
 import ParsingHelpers
@@ -60,7 +60,7 @@ struct AppEnvironment {
 }
 
 let appReducer = Reducer<AppState, AppAction, AppEnvironment>.combine(
-    listReducer.pullback(state: \.listViewState, action: /AppAction.listAction, environment: \AppEnvironment.listEnv),
+    //listReducer.pullback(state: \.listViewState, action: /AppAction.listAction, environment: \AppEnvironment.listEnv),
     Reducer{ state, action, environment in
         
         switch action {
@@ -90,12 +90,13 @@ let appReducer = Reducer<AppState, AppAction, AppEnvironment>.combine(
             return .none
         case .open(let url):
             var request = DeepLinkRequest(url: url)
-            if let route = deepLinker.parse(&request) {
-              switch route {
-              case let .list(inventoryRoute):
-                  state.listViewState.navigate(to: inventoryRoute)
-              }
-            }
+//            if let route = deepLinker.parse(&request) {
+//              switch route {
+//              case let .list(inventoryRoute):
+//                  state.listViewState.navigate(to: inventoryRoute)
+//              }
+//            }
+            return .none
         }
     }
 )
