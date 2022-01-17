@@ -30,12 +30,48 @@ public struct ListViewState: Equatable {
         IdentifiedArrayOf<EditState>( self.meditations.reversed() )
     }
     var route: Route?
-    
     public enum Route: Equatable {
-        case timedSession(TimedSessionViewState)
-//        case timesSessionCollapsed(TimedSessionViewState)
-        case editEntry(EditState)
-        case addEntry(EditState)
+        case open(TimedSessionViewState)
+        case closed(TimedSessionViewState?, Route2?)
+        public enum Route2: Equatable {
+            case edit(EditState)
+            case add(EditState)
+        }
+    }
+    // _timed
+    //        .--Open--
+    //         --collapsed--
+    //              --EditEntry--
+    //              --AddEntry--
+    // (None)
+    //              --EditEntry--
+    //              --AddEntry--
+    //
+    // _timed
+    //  --EditEntry--
+    //
+    //
+    //           --AddEntry--
+    //
+    //              --EditEntry--
+    //              --AddEntry--
+    //
+
+    var timedSession: TimedSessionViewState? {
+        switch self.route {
+        case .open(let sessionState):
+            return sessionState
+        case .closed(let t, _):
+            return t
+        case .none:
+            return nil
+        }
+    }
+    
+    var collapsed: Bool {
+        guard let _ = self.timedSession else { return false }
+        guard case .open = self.route else { return false }
+        return true
     }
 }
 
@@ -50,7 +86,7 @@ public enum ListAction: Equatable{
     case presentTimedMeditationButtonTapped
     case setSheet(isPresented: Bool)
     case saveData
-    case timerBottom(TimerBottomAction)
+    case timerBottomBarPushed
 }
 
 public struct ListEnv{
@@ -69,11 +105,26 @@ public struct ListEnv{
 
 public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
     todoReducer.forEach(state: \.meditations, action: /ListAction.edit(id:action:), environment: { _ in EditEnvironment()}),
-    mediationReducer.pullback(
-        state: OptionalPath(\ListViewState.route)
-            .appending(path: OptionalPath(/ListViewState.Route.timedSession)),
-        action: /ListAction.meditation,
-        environment: { global in global.medEnv }),
+//    mediationReducer.pullback(
+//        state: OptionalPath(\ListViewState.route)
+//            .appending(path: OptionalPath(/ListViewState.Route.open)),
+//        action: /ListAction.meditation,
+//        environment: { global in global.medEnv }),
+//    mediationReducer.pullback(
+//        state: OptionalPath(\ListViewState.route)
+//            .appending(
+//                path: OptionalPath(/ListViewState.Route.closed)
+//                    .appending(
+//                        path: OptionalPath(extract: { root in
+//                            root.0
+//                            
+//                        }, set: { (root, value) in
+//                            root.0 = value
+//                        })
+//                    )
+//            ),
+//        action: /ListAction.meditation,
+//        environment: { global in global.medEnv }),
     Reducer{ state, action, environment in
         switch action {
         case .addButtonTapped:
@@ -82,16 +133,14 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
                                  duration: 300,
                                  entry: "",
                                  title: "Untitled")
-            state.route = .addEntry(EditState(meditation: med, route: nil))
+            state.route = .closed(state.timedSession, .add(EditState(meditation: med, route: nil)
+                                                          )
+            )
             return .none
             
         case .addMeditationDismissed:
-            guard case .timedSession(let timedViewState) = state.route else { fatalError() }
-            
-            let transfer = timedViewState.timedMeditation!
-            let transfer2 = EditState(meditation: transfer, route: .none)
-            state.meditations.removeOrAdd(item: transfer2)
-            state.route = nil
+            guard case .open(let miniState) = state.route else { fatalError() }
+            state.route = .closed(miniState, nil)
             
             return Effect(value: .saveData)
             
@@ -110,24 +159,33 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
             return .none
             
         case .editNew(.didEditText(let string)):
-            guard case .editEntry(let editState) = state.route
-            else { fatalError() }
-            var editStateM = editState
-            editStateM.meditation.entry = string
-            state.route = .editEntry(editStateM)
+            let ses = state.timedSession
+            
+//
+//            state.route = .closed(state.timedSession, .add(EditState(meditation: med, route: nil)
+//                                                          )
+//            )
             return .none
+            
+//
+//            guard case .closed(_, .edit(let state)) = state.route
+//            else { fatalError() }
+//            state.meditation.entry = string
+//            state.route = .editEntry(editStateM)
+//            return .none
 
         case .editNew(.didEditTitle(let string)):
-            guard case .editEntry(let editState) = state.route
-            else { fatalError() }
-            var editStateM = editState
-            editStateM.meditation.title = string
-            state.route = .editEntry(editStateM)
-            
+//            guard case .editEntry(let editState) = state.route
+//            else { fatalError() }
+//            var editStateM = editState
+//            editStateM.meditation.title = string
+//            state.route = .editEntry(editStateM)
+//
             return .none
             
         case .meditation(.timerFinished):
-            guard case .timedSession(let timedState) = state.route
+            
+            guard let timedState = state.timedSession
             else { fatalError() }
             
             let edit = EditState(meditation: timedState.timedMeditation!, route: nil)
@@ -140,7 +198,7 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
             return .none
 
         case .presentTimedMeditationButtonTapped:
-            state.route = .timedSession(TimedSessionViewState())
+            state.route = .open(TimedSessionViewState())
             return .none
             
         case .saveData:
@@ -150,9 +208,11 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
               Effect.fireAndForget {
                   environment.file.save(Array(meds.map{ $0.meditation }))
             }
-        case .timerBottom(.buttonPressed):
+        case .timerBottomBarPushed:
+            state.route = .open(state.timedSession!)
             return .none
         case .setSheet(isPresented: let isPresented):
+            state.route = .closed(state.timedSession, nil)
             return .none
         }
     }
@@ -207,7 +267,7 @@ public struct ListView : View {
           .sheet(
             isPresented: viewStore.binding(
                 get: { (listViewState: ListViewState)-> Bool  in
-                    guard case .some(.timedSession(_)) = listViewState.route else {
+                    guard case .open = listViewState.route else {
                         return false
                     }
                     return true
@@ -217,7 +277,7 @@ public struct ListView : View {
           ) {
               IfLetStore(self.store.scope(
                 state: { state in
-                    guard case .some(.timedSession(let sessionState)) = state.route else {
+                    guard case .open(let sessionState) = state.route else {
                         return nil
                     }
                     return sessionState
@@ -229,56 +289,38 @@ public struct ListView : View {
                          then:TimedSessionView.init(store:)
               )
           }
-//          .sheet(
-//            unwrap: viewStore.binding(
-//                keyPath: \.route,
-//                send: { bindingActionWrappingState in
-//                        .dismissEditEntryView
-//                }),
-//            case: /ListViewState.Route.timedSession)
-//          {
-//              itemToAdd in
-//                  NavigationView {
-//                      //Store<TimedSessionViewState, TimedSessionViewAction>(
-//                      TimedSessionView(
-//                        store: self.store.scope(state:
-//                          { state in // to localState
-//                              guard case .timedSession(let smallGuy) = state.route else { fatalError() }
-//                              return smallGuy
-//                          }, action: { localAction in
-//                              ListAction.meditation(localAction)
-//                          })
-//                      )
-//                      .navigationTitle("Add")
-//                  }
-//          }
-//          .sheet(item:
-//                    viewStore.binding(
-//                        get: <#T##(State) -> LocalState#>,
-//                        send: <#T##(LocalState) -> Action#>)
-//                // viewStore.route.case(/ListViewState.Route.timedSession))
           
-          
-//          if (viewStore.collapsed){
-//              IfLetStore(
-//                self.store.scope(
-//                    state: { $0.timerBottomState },
-//                    action: ListAction.timerBottom),
-//                then: { newStore in
-//                    TimerBottom(store: newStore)
-//                },
-//                else:
-//                    Button(action: {
-//                        viewStore.send(ListAction.presentTimedMeditationButtonTapped)
-//                    }){
-//                        Circle()
-//                            .frame(width: 44.0, height: 44.0, alignment: .center)
-//                            .foregroundColor(.secondary)
-//                    }
-//              )
-//          } else {
-//
-//          }
+          if (viewStore.collapsed){
+              IfLetStore(
+                self.store.scope(
+                    state: { $0.timedSession! },
+                    action: { _ in fatalError() }
+                ),
+                then: { newStore in
+                    VStack {
+                        TimerBottom(store: newStore)
+                            .onTapGesture(perform: {viewStore.send(ListAction.timerBottomBarPushed)})
+                    }
+                },
+                else:
+                    Button(action: {
+                        viewStore.send(ListAction.presentTimedMeditationButtonTapped)
+                    }){
+                        Text("HEYA2")
+                        Circle()
+                            .frame(width: 44.0, height: 44.0, alignment: .center)
+                            .foregroundColor(.secondary)
+                    }
+              )
+          } else {
+              Button(action: {
+                  viewStore.send(ListAction.presentTimedMeditationButtonTapped)
+              }){
+                  Circle()
+                      .frame(width: 44.0, height: 44.0, alignment: .center)
+                      .foregroundColor(.secondary)
+              }
+          }
 ////
 //        Text("")
 //          .hidden()

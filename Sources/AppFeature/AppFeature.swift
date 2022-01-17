@@ -19,7 +19,7 @@ import ComposableUserNotifications
 import Parsing
 import ParsingHelpers
 
-enum AppRoute {
+public enum AppRoute {
   case list(ListRoute?)
 }
 
@@ -37,17 +37,21 @@ enum AppRoute {
 //      .map { .three }
 //  )
 
-let deepLinker = PathComponent("one")
+public let deepLinker = PathComponent("one")
     .take(listDeepLinker)
     .skip(PathEnd())
     .map{ AppRoute.list }
   
 
-struct AppState : Equatable {
-    var listViewState: ListViewState
+public struct AppState : Equatable {
+    public init(listViewState: ListViewState) {
+        self.listViewState = listViewState
+    }
+    
+    public var listViewState: ListViewState
 }
 
-enum AppAction : Equatable {
+public enum AppAction : Equatable {
     case listAction(ListAction)
     case didFinishLaunching(notification: UserNotification?)
     case userNotification(UserNotificationClient.Action)
@@ -55,12 +59,16 @@ enum AppAction : Equatable {
     case open(URL)
 }
 
-struct AppEnvironment {
+public struct AppEnvironment {
+    public init(listEnv: ListEnv) {
+        self.listEnv = listEnv
+    }
+    
     var listEnv: ListEnv
 }
 
-let appReducer = Reducer<AppState, AppAction, AppEnvironment>.combine(
-    //listReducer.pullback(state: \.listViewState, action: /AppAction.listAction, environment: \AppEnvironment.listEnv),
+public let appReducer = Reducer<AppState, AppAction, AppEnvironment>.combine(
+    listReducer.pullback(state: \.listViewState, action: /AppAction.listAction, environment: { $0.listEnv } ),
     Reducer{ state, action, environment in
         
         switch action {
