@@ -161,6 +161,7 @@ public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAct
         content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "bell.caf"))
         content.badge = 1
         content.categoryIdentifier = userActions
+        content.userInfo.updateValue(state.timedMeditation!.id.uuidString, forKey: "uuid-string")
 
 
         let request = UNNotificationRequest(

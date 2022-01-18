@@ -17,3 +17,13 @@ extension IdentifiedArray where Element: Identifiable, ID == UUID {
     self[index] = item
   }
 }
+
+extension IdentifiedArray where Element: Identifiable, ID == UUID {
+  public func element(id : ID) -> Element? {
+      guard let index = (self.firstIndex{ $0.id as! UUID == id }) else {
+          return nil
+    }
+      return self[index]
+  }
+}
+

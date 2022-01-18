@@ -25,11 +25,11 @@ public struct ListViewState: Equatable {
         self.route = route
     }
     
-    var meditations : IdentifiedArrayOf<EditState>
+    public var meditations : IdentifiedArrayOf<EditState>
     var meditationsReversed: IdentifiedArrayOf<EditState> {
         IdentifiedArrayOf<EditState>( self.meditations.reversed() )
     }
-    var route: Route?
+    public var route: Route?
     public enum Route: Equatable {
         case open(TimedSessionViewState)
         case closed(TimedSessionViewState?, Route2?)

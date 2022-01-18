@@ -18,6 +18,7 @@ import TimedSessionViewFeature
 import ComposableUserNotifications
 import Parsing
 import ParsingHelpers
+import EditEntryViewFeature
 
 public enum AppRoute {
   case list(ListRoute?)
@@ -88,7 +89,11 @@ public let appReducer = Reducer<AppState, AppAction, AppEnvironment>.combine(
             )
         case let .userNotification(.didReceiveResponse(response, completion)):
             let notification = UserNotification(userInfo: response.notification.request.content.userInfo())
-            
+            let idString = response.notification.request.content.userInfo()["uuid-string"] as! String
+            let id = UUID(uuidString: idString)!
+
+            let elm = state.listViewState.meditations.element(id: id)
+            state.listViewState.route = .closed(nil, .edit(elm!))
             return .fireAndForget(completion)
         case .userNotification(.willPresentNotification(_, completion: let completion)):
             return .fireAndForget {
