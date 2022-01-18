@@ -70,7 +70,7 @@ public struct ListViewState: Equatable {
     
     var collapsed: Bool {
         guard let _ = self.timedSession else { return false }
-        guard case .open = self.route else { return false }
+        guard case .closed = self.route else { return false }
         return true
     }
 }
@@ -105,26 +105,26 @@ public struct ListEnv{
 
 public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
     todoReducer.forEach(state: \.meditations, action: /ListAction.edit(id:action:), environment: { _ in EditEnvironment()}),
-//    mediationReducer.pullback(
-//        state: OptionalPath(\ListViewState.route)
-//            .appending(path: OptionalPath(/ListViewState.Route.open)),
-//        action: /ListAction.meditation,
-//        environment: { global in global.medEnv }),
-//    mediationReducer.pullback(
-//        state: OptionalPath(\ListViewState.route)
-//            .appending(
-//                path: OptionalPath(/ListViewState.Route.closed)
-//                    .appending(
-//                        path: OptionalPath(extract: { root in
-//                            root.0
-//                            
-//                        }, set: { (root, value) in
-//                            root.0 = value
-//                        })
-//                    )
-//            ),
-//        action: /ListAction.meditation,
-//        environment: { global in global.medEnv }),
+    mediationReducer.pullback(
+        state: OptionalPath(\ListViewState.route)
+            .appending(path: OptionalPath(/ListViewState.Route.open)),
+        action: /ListAction.meditation,
+        environment: { global in global.medEnv }),
+    mediationReducer.pullback(
+        state: OptionalPath(\ListViewState.route)
+            .appending(
+                path: OptionalPath(/ListViewState.Route.closed)
+                    .appending(
+                        path: OptionalPath(extract: { root in
+                            root.0
+                            
+                        }, set: { (root, value) in
+                            root.0 = value
+                        })
+                    )
+            ),
+        action: /ListAction.meditation,
+        environment: { global in global.medEnv }),
     Reducer{ state, action, environment in
         switch action {
         case .addButtonTapped:

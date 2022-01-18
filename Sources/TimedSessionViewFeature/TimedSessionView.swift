@@ -156,8 +156,8 @@ public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAct
 
         
         let content = UNMutableNotificationContent()
-        content.title = "Example title"
-        content.body = "Example body"
+        content.title = "\(state.timedMeditation!.title) Complete"
+        content.body = "Tap to add an entry"
         content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "bell.caf"))
         content.badge = 1
         content.categoryIdentifier = userActions
@@ -173,7 +173,7 @@ public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAct
         let deleteAction = UNNotificationAction(identifier: "Delete", title: "Delete", options: [.destructive])
         let category = UNNotificationCategory(identifier: userActions, actions: [snoozeAction, deleteAction], intentIdentifiers: [], options: [])
          
-      return  Effect.concatenate(
+        return  Effect.merge(
         Effect.timer(id: TimerId(), every: 1, on: environment.mainQueue)
           .map { _ in TimedSessionViewAction.timerFired },
         environment.userNotificationClient.removePendingNotificationRequestsWithIdentifiers(["example_notification"])
