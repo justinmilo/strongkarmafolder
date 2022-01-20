@@ -9,7 +9,7 @@ import ComposableArchitecture
 import Models
 
 extension IdentifiedArray where Element: Identifiable, ID == UUID {
-  mutating func removeOrAdd(item : Element) {
+public  mutating func removeOrAdd(item : Element) {
       guard let index = (self.firstIndex{ $0.id as! UUID == item.id as! UUID }) else {
       self.insert(item, at: 0)
       return

@@ -28,44 +28,35 @@ public struct TimedSessionViewState: Equatable{
         "Positive Feel",
         "Yoga Still",
         "Yoga Flow",
-        "Free Style",
+        "Shi-ne",
     ], timerData: TimerData? = nil, timedMeditation: Meditation? = nil, _tdcount: Int = 0) {
         self.selType = selType
         self.selMin = selMin
         self.types = types
         self.timerData = timerData
         self.timedMeditation = timedMeditation
-        self._tdcount = _tdcount
     }
     
     let minutesList : [Double] = (1 ... 60).map(Double.init).map{$0}
-    var selType : Int = 0
-    var selMin  : Int = 0
-    var types : [String] = [
-        "Concentration",
-        "Mindfullness of Breath",
-        "See Hear Feel",
-        "Self Inquiry",
-        "Do Nothing",
-        "Positive Feel",
-        "Yoga Still",
-        "Yoga Flow",
-        "Free Style",
-      ]
+    var selType : Int
+    var selMin  : Int
+    var types : [String]
     public var timerData : TimerData?
     public var timedMeditation: Meditation?
     var seconds  : Double { self.minutesList[self.selMin]
-       // * 60
+        //* 60
     }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
-    var _tdcount: Int = 0
+    var timerGoing: Bool { return  nil != timerData}
 }
     
 public enum TimedSessionViewAction: Equatable {
     case addNotificationResponse(Result<Int, UserNotificationClient.Error>)
+    case cancelButtonTapped
     case didFinishLaunching(notification: UserNotification?)
     case didReceiveBackgroundNotification(BackgroundNotification)
+    case pauseButtonTapped
     case pickMeditationTime(Int)
     case pickTypeOfMeditation(Int)
     case remoteCountResponse(Result<Int, RemoteClient.Error>)
@@ -95,15 +86,12 @@ public struct TimedSessionViewEnvironment {
    var uuid : ()->UUID
 }
 
-public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAction, TimedSessionViewEnvironment>{
+public let timedSessionReducer = Reducer<TimedSessionViewState, TimedSessionViewAction, TimedSessionViewEnvironment>{
     state, action, environment in
     struct TimerId: Hashable {}
 
     switch action {
     case let .didFinishLaunching(notification):
-        if case let .count(value) = notification {
-          state._tdcount = value
-        }
 
         return .merge(
           environment.userNotificationClient
@@ -188,7 +176,6 @@ public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAct
      )
         
     case let .remoteCountResponse(.success(count)):
-        state._tdcount = count
         return .none
         
     case .remoteCountResponse(.failure):
@@ -223,9 +210,6 @@ public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAct
         return .none
     case let .userNotification(.didReceiveResponse(response, completion)):
         let notification = UserNotification(userInfo: response.notification.request.content.userInfo())
-        if case let .count(value) = notification {
-          state._tdcount = value
-        }
 
         return .fireAndForget(completion)
     case .userNotification(.willPresentNotification(_, completion: let completion)):
@@ -234,6 +218,15 @@ public let mediationReducer = Reducer<TimedSessionViewState, TimedSessionViewAct
            }
     case .userNotification(.openSettingsForNotification(_)):
         return .none
+    case .cancelButtonTapped:
+        state.timerData = nil
+        return Effect.merge(
+            .cancel(id: TimerId()),
+            environment.userNotificationClient.removePendingNotificationRequestsWithIdentifiers(["example_notification"])
+                .fireAndForget()
+            )
+    case .pauseButtonTapped:
+        return Effect.cancel(id: TimerId())
     }
     
 }
@@ -256,28 +249,67 @@ public struct TimedSessionView: View {
           Text(viewStore.timerData?.timeLeftLabel ?? "\(viewStore.minutes)")
             .foregroundColor(Color(#colorLiteral(red: 0.4843137264, green: 0.6065605269, blue: 0.9686274529, alpha: 1)))
             .font(.largeTitle)
-          Spacer()
           Group{
+              Spacer()
               PrepView(goals: self.$myBool, motivation: self.$myBool, expectation: self.$myBool, resolve: self.$myBool, posture: self.$myBool)
+              PickerFeature(
+                types: viewStore.types,
+                typeSelection:  viewStore.binding(
+                    get: { $0.selType },
+                    send: { .pickTypeOfMeditation($0) }
+                ),
+                minutesList: viewStore.minutesList,
+                minSelection: viewStore.binding(
+                    get: { $0.selMin },
+                    send: { .pickMeditationTime($0) }
+                ))
+              Spacer()
+              Spacer()
           }
-          PickerFeature(
-            types: viewStore.types,
-            typeSelection:  viewStore.binding(
-                get: { $0.selType },
-                send: { .pickTypeOfMeditation($0) }
-            ),
-            minutesList: viewStore.minutesList,
-            minSelection: viewStore.binding(
-                get: { $0.selMin },
-                send: { .pickMeditationTime($0) }
-            ))
-          Spacer()
-          Button(
-            action: { viewStore.send(
-                .startTimerPushed(startDate:Date(), duration: viewStore.seconds, type: viewStore.currentType ))
-          }) {
-              Text("Start")
-                  .font(.title)
+        
+          if !viewStore.timerGoing {
+              Button(
+                action: { viewStore.send(
+                    .startTimerPushed(
+                        startDate:Date(),
+                        duration: viewStore.seconds,
+                        type: viewStore.currentType )
+                )
+                }) { Text("Start")
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .background(Circle()
+                                        .frame(width: 66.0, height: 66.0, alignment: .center)
+                                        .foregroundColor(.accentColor)
+                                        .opacity(0.35)
+                        )
+                     }
+          } else {
+              HStack {
+                  Spacer()
+                  Button( action: { viewStore.send( .cancelButtonTapped ) })  { Text("Cancel")
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .background(Circle()
+                                    .frame(width: 66.0, height: 66.0, alignment: .center)
+                                    .foregroundColor(.secondary)
+                                    .opacity(0.35)
+                    )
+                }
+                  Spacer()
+                  Spacer()
+                  Button( action: { viewStore.send( .pauseButtonTapped ) }) { Text("Pause")
+                            .font(.body)
+                            .foregroundColor(.white)
+                        .background(Circle()
+                                        .frame(width: 66.0, height: 66.0, alignment: .center)
+                                        .foregroundColor(.accentColor)
+                                        .opacity(0.35)
+                        )
+                    }
+                  Spacer()
+
+              }
           }
           Spacer()
       }
@@ -285,38 +317,36 @@ public struct TimedSessionView: View {
   }
 }
 
-//struct MeditationView_Previews: PreviewProvider {
-//    static var previews: some View {
-//
-//      Group {
-//      MeditationView(store: Store(
-//        initialState:
-//            MediationViewState(
-//                userData: UserData(meditations: IdentifiedArray(FileIO().load()), timedMeditationVisible: false )
-//                ),
-//         reducer: appReducer.debug(),
-//         environment: AppEnvironment(
-//            mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
-//            now: Date.init,
-//            uuid: UUID.init
-//         )
-//         )
-//      )
-//
-//
-//      MeditationView(store: Store(
-//        initialState: MediationViewState(
-//            userData: UserData(meditations: IdentifiedArray(FileIO().load()), timedMeditationVisible: false )
-//            ),
-//         reducer: appReducer.debug(),
-//         environment: AppEnvironment(
-//            mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
-//            now: Date.init,
-//            uuid: UUID.init
-//         )
-//         )
-//      )
-//         .environment(\.colorScheme, .dark)
-//    }
-//   }
-//}
+struct MeditationView_Previews: PreviewProvider {
+    static var previews: some View {
+
+      Group {
+      TimedSessionView(store: Store(
+        initialState:
+            TimedSessionViewState(),
+         reducer: timedSessionReducer.debug(),
+         environment: TimedSessionViewEnvironment(
+            remoteClient: .randomDelayed,
+            userNotificationClient: UserNotificationClient.live,
+            mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
+            now: Date.init,
+            uuid: UUID.init)
+      )
+      )
+
+          TimedSessionView(store: Store(
+            initialState:
+                TimedSessionViewState(),
+             reducer: timedSessionReducer.debug(),
+             environment: TimedSessionViewEnvironment(
+                remoteClient: .randomDelayed,
+                userNotificationClient: UserNotificationClient.live,
+                mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
+                now: Date.init,
+                uuid: UUID.init)
+          )
+          )
+         .environment(\.colorScheme, .dark)
+    }
+   }
+}

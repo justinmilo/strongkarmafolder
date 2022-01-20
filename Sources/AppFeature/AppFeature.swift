@@ -92,8 +92,11 @@ public let appReducer = Reducer<AppState, AppAction, AppEnvironment>.combine(
             let idString = response.notification.request.content.userInfo()["uuid-string"] as! String
             let id = UUID(uuidString: idString)!
 
-            let elm = state.listViewState.meditations.element(id: id)
-            state.listViewState.route = .closed(nil, .edit(elm!))
+            state.listViewState.route = .closed(nil, .item(id: id))
+            var elm = state.listViewState.meditations.element(id: id)!
+            elm.route = .edit(EditState(meditation: elm.item, route: .none))
+            state.listViewState.meditations.removeOrAdd(item: elm)
+
             return .fireAndForget(completion)
         case .userNotification(.willPresentNotification(_, completion: let completion)):
             return .fireAndForget {

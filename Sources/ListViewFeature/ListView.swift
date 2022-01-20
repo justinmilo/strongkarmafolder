@@ -21,20 +21,20 @@ import TCAHelpers
 public struct ListViewState: Equatable {
     public init(meditations: IdentifiedArrayOf<Meditation>,
                 route: Route?) {
-        self.meditations = IdentifiedArray( meditations.map{ EditState(meditation: $0, route:nil) } )
+        self.meditations = IdentifiedArray( meditations.map{ ItemRowState(item: $0, route: nil) } )
         self.route = route
     }
     
-    public var meditations : IdentifiedArrayOf<EditState>
-    var meditationsReversed: IdentifiedArrayOf<EditState> {
-        IdentifiedArrayOf<EditState>( self.meditations.reversed() )
+    public var meditations : IdentifiedArrayOf<ItemRowState>
+    var meditationsReversed: IdentifiedArrayOf<ItemRowState> {
+        IdentifiedArrayOf<ItemRowState>( self.meditations.reversed() )
     }
     public var route: Route?
     public enum Route: Equatable {
         case open(TimedSessionViewState)
         case closed(TimedSessionViewState?, Route2?)
         public enum Route2: Equatable {
-            case edit(EditState)
+            case item(id:ItemRowState.ID)
             case add(EditState)
         }
     }
@@ -79,8 +79,7 @@ public enum ListAction: Equatable{
     case addButtonTapped
     case addMeditationDismissed
     case deleteMeditationAt(IndexSet)
-    case dismissEditEntryView
-    case edit(id: UUID, action: EditAction)
+    case edit(id: UUID, action: ItemRowAction)
     case editNew(EditAction)
     case meditation(TimedSessionViewAction)
     case presentTimedMeditationButtonTapped
@@ -104,13 +103,13 @@ public struct ListEnv{
 }
 
 public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
-    todoReducer.forEach(state: \.meditations, action: /ListAction.edit(id:action:), environment: { _ in EditEnvironment()}),
-    mediationReducer.pullback(
+    itemRowReducer.forEach(state: \.meditations, action: /ListAction.edit(id:action:), environment: {_ in ItemRowEnvironment()} ),
+    timedSessionReducer.pullback(
         state: OptionalPath(\ListViewState.route)
             .appending(path: OptionalPath(/ListViewState.Route.open)),
         action: /ListAction.meditation,
         environment: { global in global.medEnv }),
-    mediationReducer.pullback(
+    timedSessionReducer.pullback(
         state: OptionalPath(\ListViewState.route)
             .appending(
                 path: OptionalPath(/ListViewState.Route.closed)
@@ -151,12 +150,24 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
             
              return .none
             
-        case .dismissEditEntryView:
-            state.route = nil
+        case .edit(id: let id, action: .setEditNavigation(isActive: true)):
+            
+            state.route = .closed(state.timedSession, .item(id: id))
+
+
+             return .none
+        case .edit(id: let id, action: .setEditNavigation(isActive: false)):
+//            guard case .closed(_, .item(id: let id)) = state.route else { fatalError() }
+//            state.route = .closed(state.timedSession, .none)
+//
+//            state.meditations.removeOrAdd(item: rowState)
+
+
             return Effect(value: .saveData)
             
         case .edit(id: _, action: _):
             return .none
+            
             
         case .editNew(.didEditText(let string)):
             let ses = state.timedSession
@@ -188,9 +199,11 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
             guard let timedState = state.timedSession
             else { fatalError() }
             
-            let edit = EditState(meditation: timedState.timedMeditation!, route: nil)
+            let edit = ItemRowState(item: timedState.timedMeditation!, route: nil)
 
             state.meditations.removeOrAdd(item: edit)
+            
+            state.route = .closed(nil, nil)
             
             return .none
             
@@ -206,7 +219,7 @@ public let listReducer = Reducer<ListViewState, ListAction, ListEnv>.combine(
             
             return
               Effect.fireAndForget {
-                  environment.file.save(Array(meds.map{ $0.meditation }))
+                  environment.file.save(Array(meds.map{ $0.item }))
             }
         case .timerBottomBarPushed:
             state.route = .open(state.timedSession!)
@@ -237,14 +250,7 @@ public struct ListView : View {
                   state: { $0.meditations },
                   action: ListAction.edit(id:action:)) )
                { meditationStore in
-                     NavigationLink(destination:
-                        EditEntryView.init(store:meditationStore)
-                           .onDisappear {
-                              viewStore.send(.saveData)
-                        }){
-                        ListItemView(store: meditationStore)
-                     }
-                  
+                        ItemRowView(store: meditationStore)
               }
                .onDelete { (indexSet) in
                   viewStore.send(.deleteMeditationAt(indexSet))

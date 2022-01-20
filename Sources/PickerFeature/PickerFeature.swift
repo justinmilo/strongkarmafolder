@@ -32,15 +32,17 @@ public struct PickerFeature: View {
             ForEach(0 ..< types.count) { index in
                 Text(types[index]).tag(index)
             }
-        }.labelsHidden()
-            .pickerStyle(.wheel)
+        }
+        .labelsHidden()
+        .pickerStyle(.wheel)
         Picker("Min", selection: $minSelection) {
             ForEach(0 ..< minutesList.count) {
                 Text( String( minutesList[$0] )
                 ).tag($0)
             }
-        }.labelsHidden()
-            .pickerStyle(.wheel)
+        }
+        .labelsHidden()
+        .pickerStyle(.wheel)
         }
     }
 }
