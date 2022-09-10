@@ -44,11 +44,12 @@ public struct TimedSessionViewState: Equatable{
     public var timerData : TimerData?
     public var timedMeditation: Meditation?
     var seconds  : Double { self.minutesList[self.selMin]
-        //* 60
+        * 60
     }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}
     var timerGoing: Bool { return  nil != timerData}
+    var paused: Bool = false
 }
     
 public enum TimedSessionViewAction: Equatable {
@@ -61,7 +62,7 @@ public enum TimedSessionViewAction: Equatable {
     case pickTypeOfMeditation(Int)
     case remoteCountResponse(Result<Int, RemoteClient.Error>)
     case requestAuthorizationResponse(Result<Bool, UserNotificationClient.Error>)
-    case startTimerPushed(startDate:Date, duration:Double, type:String)
+    case startTimerPushed(duration:Double)
     case timerFired
     case timerFinished
     case userNotification(UserNotificationClient.Action)
@@ -130,14 +131,14 @@ public let timedSessionReducer = Reducer<TimedSessionViewState, TimedSessionView
     case .pickMeditationTime(let index) :
       state.selMin = index
       return .none
-    case let .startTimerPushed(startDate: date, duration:seconds, type: type):
-      state.timerData = TimerData(endDate: date+seconds)
+    case let .startTimerPushed(duration:seconds):
+        state.timerData = TimerData(endDate: environment.now() + seconds)
       
       state.timedMeditation =  Meditation(id: environment.uuid(),
                         date: environment.now().description,
                         duration: seconds,
                         entry: "",
-                        title: type)
+                                          title: state.currentType)
 
       let duration = state.timedMeditation!.duration
         let userActions = "User Actions"
@@ -226,7 +227,19 @@ public let timedSessionReducer = Reducer<TimedSessionViewState, TimedSessionView
                 .fireAndForget()
             )
     case .pauseButtonTapped:
-        return Effect.cancel(id: TimerId())
+        switch state.paused {
+        case false:
+            state.paused = true
+            return Effect.merge(
+                .cancel(id: TimerId()),
+                environment.userNotificationClient.removePendingNotificationRequestsWithIdentifiers(["example_notification"])
+                    .fireAndForget()
+                )
+        case true:
+            state.paused = false
+            return Effect(value: .startTimerPushed(duration: state.timerData!.timeLeft!))
+        }
+        
     }
     
 }
@@ -271,9 +284,7 @@ public struct TimedSessionView: View {
               Button(
                 action: { viewStore.send(
                     .startTimerPushed(
-                        startDate:Date(),
-                        duration: viewStore.seconds,
-                        type: viewStore.currentType )
+                        duration: viewStore.seconds)
                 )
                 }) { Text("Start")
                         .font(.body)
@@ -298,15 +309,28 @@ public struct TimedSessionView: View {
                 }
                   Spacer()
                   Spacer()
-                  Button( action: { viewStore.send( .pauseButtonTapped ) }) { Text("Pause")
-                            .font(.body)
-                            .foregroundColor(.white)
-                        .background(Circle()
-                                        .frame(width: 66.0, height: 66.0, alignment: .center)
-                                        .foregroundColor(.accentColor)
-                                        .opacity(0.35)
-                        )
-                    }
+                  if (!viewStore.paused) {
+                      Button( action: { viewStore.send( .pauseButtonTapped ) }) { Text("Pause")
+                              .font(.body)
+                              .foregroundColor(.white)
+                              .background(Circle()
+                                            .frame(width: 66.0, height: 66.0, alignment: .center)
+                                            .foregroundColor(.accentColor)
+                                            .opacity(0.35)
+                              )
+                        }
+                  } else {
+                      Button( action: { viewStore.send( .pauseButtonTapped ) }) { Text("Start")
+                              .font(.body)
+                              .foregroundColor(.white)
+                              .background(Circle()
+                                            .frame(width: 66.0, height: 66.0, alignment: .center)
+                                            .foregroundColor(.accentColor)
+                                            .opacity(0.35)
+                              )
+                        }
+                  }
+                  
                   Spacer()
 
               }
