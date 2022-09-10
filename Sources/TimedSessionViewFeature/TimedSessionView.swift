@@ -44,7 +44,7 @@ public struct TimedSessionViewState: Equatable{
     public var timerData : TimerData?
     public var timedMeditation: Meditation?
     var seconds  : Double { self.minutesList[self.selMin]
-        * 60
+       // * 60
     }
     var minutes  : Double { self.minutesList[self.selMin] }
     var currentType : String { self.types[self.selType]}

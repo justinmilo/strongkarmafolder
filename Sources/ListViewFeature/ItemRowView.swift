@@ -67,7 +67,7 @@ struct ItemRowView : View {
         case: /ItemRowState.Route.edit,
         onNavigate: { viewStore.send(.setEditNavigation(isActive: $0)) },
         destination: { itemViewModel in
-            IfLetStore(
+            IfLetStore<EditState, EditAction, EditEntryView?>(
                 self.store.scope(
                   state: { state in
                       guard case .edit(let s) = state.route else {

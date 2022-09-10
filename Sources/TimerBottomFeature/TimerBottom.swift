@@ -24,7 +24,7 @@ import TimedSessionViewFeature
 //}
 
 public struct TimerBottom : View {
-    public init(store: Store<TimedSessionViewState, Never>) {
+    public init(store: Store<TimedSessionViewState, ()>) {
         self.store = store
     }
     
@@ -33,7 +33,7 @@ public struct TimerBottom : View {
     var meditationTitle : String
   }
   
-  var store: Store<TimedSessionViewState, Never>
+  var store: Store<TimedSessionViewState, ()>
 
 
   public var body: some View {

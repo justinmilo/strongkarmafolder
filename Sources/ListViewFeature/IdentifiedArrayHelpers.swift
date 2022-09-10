@@ -14,7 +14,7 @@ public  mutating func removeOrAdd(item : Element) {
       self.insert(item, at: 0)
       return
     }
-    self[index] = item
+    self.update(item, at: index)
   }
 }
 

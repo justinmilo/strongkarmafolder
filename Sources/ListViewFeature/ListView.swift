@@ -299,25 +299,45 @@ public struct ListView : View {
           if (viewStore.collapsed){
               IfLetStore(
                 self.store.scope(
-                    state: { $0.timedSession! },
-                    action: { _ in fatalError() }
-                ),
-                then: { newStore in
+                    state: { $0.timedSession },
+                    action: { fatalError()
+                    }
+                ), then: { newStore in
                     VStack {
                         TimerBottom(store: newStore)
                             .onTapGesture(perform: {viewStore.send(ListAction.timerBottomBarPushed)})
                     }
                 },
-                else:
+                else: {
                     Button(action: {
                         viewStore.send(ListAction.presentTimedMeditationButtonTapped)
                     }){
-                        Text("HEYA2")
                         Circle()
                             .frame(width: 44.0, height: 44.0, alignment: .center)
                             .foregroundColor(.secondary)
                     }
+                }
               )
+//              IfLetStore(
+//                self.store.scope(
+//                    state: { $0.timedSession! },
+//                    action: { _ in fatalError() }
+//                ),
+//                then: { newStore in
+//                    VStack {
+//                        TimerBottom(store: newStore)
+//                            .onTapGesture(perform: {viewStore.send(ListAction.timerBottomBarPushed)})
+//                    }
+//                },
+//                else:
+//                    Button(action: {
+//                        viewStore.send(ListAction.presentTimedMeditationButtonTapped)
+//                    }){
+//                        Circle()
+//                            .frame(width: 44.0, height: 44.0, alignment: .center)
+//                            .foregroundColor(.secondary)
+//                    }
+//              )
           } else {
               Button(action: {
                   viewStore.send(ListAction.presentTimedMeditationButtonTapped)
